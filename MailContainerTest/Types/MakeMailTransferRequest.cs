@@ -1,4 +1,6 @@
-﻿namespace MailContainerTest.Types
+﻿using System;
+
+namespace MailContainerTest.Types
 {
     public class MakeMailTransferRequest
     {
