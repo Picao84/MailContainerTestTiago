@@ -14,36 +14,60 @@ namespace MailContainerTest.Tests
     [TestFixture]
     public class MailTransferServiceTests
     {
-        IMailContainerDataStore mailContainerDataStore;
-
         [SetUp]
         public void Setup()
         {
-            var dataStoreType = ConfigurationManager.AppSettings["DataStoreType"];
-
-            if (dataStoreType == "Backup")
-            {
-                 mailContainerDataStore = new BackupMailContainerDataStore();
-            }
-            else
-            {
-                mailContainerDataStore = new MailContainerDataStore();
-            }
+           
         }
 
         [Test]
-        [TestCase(MailType.StandardLetter, 5, MailContainerStatus.Operational)]
-        [TestCase(MailType.LargeLetter, 10, MailContainerStatus.Operational)]
-        [TestCase(MailType.SmallParcel, 1, MailContainerStatus.Operational)]
-        [TestCase(MailType.StandardLetter, 5, MailContainerStatus.OutOfService)]
-        [TestCase(MailType.LargeLetter, 10, MailContainerStatus.OutOfService)]
-        [TestCase(MailType.SmallParcel, 1, MailContainerStatus.OutOfService)]
-        public void MakeMailTransferTest(MailType mailType, int numberOfMailItems, MailContainerStatus status = MailContainerStatus.Operational)
+        [TestCase(AllowedMailType.StandardLetter, MailType.StandardLetter, 10, 5, MailContainerStatus.Operational)]
+        [TestCase(AllowedMailType.LargeLetter, MailType.LargeLetter, 10, 5, MailContainerStatus.Operational)]
+        [TestCase(AllowedMailType.SmallParcel, MailType.SmallParcel, 10, 5, MailContainerStatus.Operational)]
+        public void MakeMailTransferPositiveTest(AllowedMailType mailContainerType, MailType mailType, int mailContainerCapacity, int numberOfMailItems, MailContainerStatus status = MailContainerStatus.Operational)
         {
+            var dataStoreType = ConfigurationManager.AppSettings["DataStoreType"];
+
+            IMailContainerDataStore mailContainerDataStore;
+
+            if (dataStoreType == "Backup")
+            {
+                mailContainerDataStore = new TestBackupMailContainerDataStore(mailContainerType, mailContainerCapacity, status);
+            }
+            else
+            {
+                mailContainerDataStore = new TestMailContainerDataStore(mailContainerType, mailContainerCapacity, status);
+            }
+
             MailTransferService service = new MailTransferService(mailContainerDataStore);
             var result = service.MakeMailTransfer(new MakeMailTransferRequest() { MailType = mailType, NumberOfMailItems = numberOfMailItems });
 
             Assert.IsTrue(result.Success);
+        }
+
+        [Test]
+        [TestCase(AllowedMailType.LargeLetter, MailType.StandardLetter, 10, 5, MailContainerStatus.Operational)]
+        [TestCase(AllowedMailType.LargeLetter, MailType.LargeLetter, 10, 12, MailContainerStatus.Operational)]
+        [TestCase(AllowedMailType.SmallParcel, MailType.SmallParcel, 10, 5, MailContainerStatus.OutOfService)]
+        public void MakeMailTransferNegativeTest(AllowedMailType mailContainerType, MailType mailType, int mailContainerCapacity, int numberOfMailItems, MailContainerStatus status = MailContainerStatus.Operational)
+        {
+            var dataStoreType = ConfigurationManager.AppSettings["DataStoreType"];
+
+            IMailContainerDataStore mailContainerDataStore;
+
+            if (dataStoreType == "Backup")
+            {
+                mailContainerDataStore = new TestBackupMailContainerDataStore(mailContainerType, mailContainerCapacity, status);
+            }
+            else
+            {
+                mailContainerDataStore = new TestMailContainerDataStore(mailContainerType, mailContainerCapacity, status);
+            }
+
+            MailTransferService service = new MailTransferService(mailContainerDataStore);
+            var result = service.MakeMailTransfer(new MakeMailTransferRequest() { MailType = mailType, NumberOfMailItems = numberOfMailItems });
+
+            Assert.IsFalse(result.Success);
         }
     }
 }
